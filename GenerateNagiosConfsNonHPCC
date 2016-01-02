@@ -1,0 +1,100 @@
+#!/usr/bin/python
+
+# Simple Script to generate nagios host configuration files (Non-HPCC)
+
+import subprocess, sys, time, os
+
+Environment = raw_input('Enter Environment Name > ')
+IPRange = raw_input('Enter IP range i.e. 10.241.30.1-200 > ')
+Directory = '/etc/HPCCSystems/nagios/%s' % Environment
+
+### Creating directory structure 
+
+EnvironmentDirectory = '/etc/HPCCSystems/nagios/%s' % Environment
+
+if os.path.isdir(EnvironmentDirectory) == False:
+	subprocess.call(('mkdir -p /etc/HPCCSystems/nagios/%s') % Environment, shell=True)
+else:
+	print "Environment already exists"
+	sys.exit(1)
+
+if os.path.isdir('/etc/HPCCSystems/nagios/LDAP') == False:
+	subprocess.call('mkdir /etc/HPCCSystems/nagios/LDAP', shell=True)
+else:
+	pass
+if os.path.isdir('/etc/HPCCSystems/nagios/MySQL') == False:
+	subprocess.call('mkdir /etc/HPCCSystems/nagios/MySQL', shell=True) 
+else:
+	pass
+if os.path.isdir('/etc/HPCCSystems/nagios/DropZones') == False:
+	subprocess.call('mkdir /etc/HPCCSystems/nagios/DropZones', shell=True) 
+else:
+	pass
+
+### Generating host configuration files with basic checks
+
+def AddRangeEntry():
+	ClusterRange = IPRange.split('.')[-1]
+	firstNumber = int(ClusterRange.split('-')[0])
+	secondNumber = int(ClusterRange.split('-')[1])
+	for ip in range(firstNumber, secondNumber):
+		FullIP = IPRange.split('.')[0] + '.' + IPRange.split('.')[1] + '.' + IPRange.split('.')[2] + '.' + str(ip) + '.' + 'cfg' 
+		filename = Directory + '/' + FullIP
+		config_file = open(filename, 'w')
+		host_conf = """
+
+define host{
+        use                 generic-hpcc            
+        host_name           %s
+        alias               %s
+        address             %s
+        }
+
+
+define service {
+	use                  hpcc-service
+	host_name            %s
+	service_description  SSH Status 
+	check_command        check_ssh
+}
+
+define service {
+	use                  hpcc-service
+	host_name            %s
+	service_description  Drive Status
+	check_command        check_drives
+}
+
+""" % (i, i, i, i, i)
+		config_file.write(host_conf)
+		config_file.close()
+
+
+### Appending new entries to /etc/HPCCSystems/nagios/non_hpcc_hostgroups_nagios2.cfg
+
+def EditHostGroups():
+	hostgroup_filename = open("/etc/HPCCSystems/nagios/non_hpcc_hostgroups.cfg", 'a')
+	ingest = "%s" % pars.IPs()
+	cleanup = ingest.replace('[', '').replace(']', '').replace('\'', '').replace(' ','')
+	bulk = """
+define hostgroup {
+        hostgroup_name  %s
+        alias           %s
+        members         %s
+}
+""" % (Environment, Environment, cleanup)
+	hostgroup_filename.write(bulk)
+	hostgroup_filename.close()
+
+### Creating configuration files
+
+AddRangeEntry()
+EditHostGroups()
+
+### Changing file ownership
+
+subprocess.call('chown nagios. /etc/HPCCSystems/nagios/ -R', shell=True)
+
+### Restarting Nagios application
+
+subprocess.call('/etc/init.d/nagios restart', shell=True)

@@ -1,0 +1,36 @@
+#!/usr/bin/python
+
+import subprocess, sys, os
+
+Environment = raw_input('Enter servicegroup_name, use the environment name plus the cluster name separated by underscore (_) i.e. Prod400_Thor400_20, Bair_Prod_Roxie01 > ')
+Service = raw_input('Enter name of the service_description under the individual host definitions file > ')
+IP = raw_input('Enter IP address of a node that is part of the cluster where you wish to implement this > ')
+filename = "/etc/HPCCSystems/nagios/hpcc_objects/hpcc_servicegroups.cfg"
+get_buddies = "snmpwalk -v 2c -c  %s ObviouslyThisIsNotMyCommunityString NET-SNMP-EXTEND-MIB::'nsExtendOutputFull.\"Siblings\"'|awk -F'STRING: ' '{print $2}'" % IP
+cmd_buddies = os.popen(get_buddies).readline().replace('\n','')
+buddies = cmd_buddies.split(',')
+ipNservices = []
+
+if os.path.isfile(filename) == False:
+	subprocess.call('touch /etc/HPCCSystems/nagios/hpcc_objects/hpcc_servicegroups.cfg', shell=True)
+else:
+	pass
+
+for i in buddies:
+	ipNservices.append(i+',Drive Space')
+
+def EditServiceGroups():
+	servicegroup_file = open(filename, 'a')
+	ingest = "%s" % ipNservices
+	cleanup = ingest.replace('[', '').replace(']', '').replace('\'', '')
+	bulk = """
+define servicegroup {
+	servicegroup_name    %s
+	alias                %s
+	members              %s
+}
+""" % (Environment + ' ' + Service, Environment + ' ' + Service, cleanup)
+	servicegroup_file.write(bulk)
+	servicegroup_file.close()
+
+EditServiceGroups()

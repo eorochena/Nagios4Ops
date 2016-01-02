@@ -1,0 +1,92 @@
+#!/usr/bin/python
+
+import subprocess, sys, os
+
+Environment = raw_input('Enter Environment Name > ')
+ProdOrNot = raw_input('Please specify if this environment is production by typing prod or if it is a non-production by typing non-prod > ')
+wholeORrange = raw_input('Do you want to implement this change for the whole environment (type whole) or Do you want to implement this change to just an specific range (type range)? > ')
+Directory = "/etc/HPCCSystems/nagios/%s" % Environment
+Description = raw_input('Enter a service description that you would like to add i.e. Drive Space or SSH Status etc > ')
+Command = raw_input('Enter the command_name from the /etc/HPCCSystems/nagios/hpcc_commands.cfg that you would like to add i.e. check_eclserver or check_drives > ')
+
+if ProdOrNot == "prod":
+        ServiceDefinition = "hpcc-prod-service"
+elif ProdOrNot == "non-prod":
+        ServiceDefinition = "hpcc-nonprod-service"
+else:
+        print "Invalid Option"
+        sys.exit(1)
+
+### Appending new entry to host configuration file (ranged)
+
+if wholeORrange == "range":
+	IPRange = raw_input('Enter IP range i.e. 10.241.30.1-200 > ')
+
+	def AddRangeEntry():
+		ClusterRange = IPRange.split('.')[-1]
+		firstNumber = int(ClusterRange.split('-')[0])
+		secondNumber = int(ClusterRange.split('-')[1])
+		for ip in range(firstNumber, secondNumber): 
+			FullName = IPRange.split('.')[0] + '.' + IPRange.split('.')[1] + '.' + IPRange.split('.')[2] + '.' + str(ip) + '.' + "cfg"
+			for filename in os.listdir(Directory):
+				if filename == FullName:
+					absolute_path = Directory + '/' + filename
+					config_file = open(absolute_path, 'a')
+					host_conf = """
+define service {
+   use                  %s
+   host_name            %s
+   service_description  %s
+   check_command        %s
+}
+
+	""" % (ServiceDefinition, filename.split('.c')[0], Description, Command)
+					config_file.write(host_conf)
+					config_file.close()
+						 		
+	AddRangeEntry()
+
+### Changing file ownership
+
+	subprocess.call('chown nagios. /etc/HPCCSystems/nagios/ -R', shell=True)
+
+### Restarting Nagios application
+
+	subprocess.call('/etc/init.d/nagios restart', shell=True)
+
+
+### Appending new entry to host configuration file (system wide)
+
+elif wholeORrange == "whole":
+
+	def AddNewEntry():
+		for filename in os.listdir(Directory):
+			absolute_path = Directory + '/' + filename
+			config_file = open(absolute_path, 'a')
+			host_conf = """
+
+	define service {
+   	 use                  %s
+  	 host_name            %s
+   	 service_description  %s
+   	 check_command        %s
+	}
+
+	""" % (ServiceDefinition, filename.split('.c')[0], Description, Command)
+			config_file.write(host_conf)
+			config_file.close()
+
+
+	AddNewEntry()
+
+### Changing file ownership
+
+	subprocess.call('chown nagios. /etc/HPCCSystems/nagios/ -R', shell=True)
+
+### Restarting Nagios application
+
+	subprocess.call('/etc/init.d/nagios restart', shell=True)
+
+else:
+
+	print "ScriptKiddie or most likely USER (meaning YOU) goofed somewhere"

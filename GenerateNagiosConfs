@@ -1,0 +1,1013 @@
+#!/usr/bin/python
+
+import lxml.etree as ET
+import subprocess, paramiko, getpass, sys, time, os, Queue, threading
+
+Environment = raw_input('Enter Environment Name > ')
+Address = raw_input('Enter IP > ')
+ProdOrNot = raw_input('Please specify if this environment is production by typing prod or if it is a non-production by typing non-prod > ')
+xxx =  getpass.getpass()
+user = 'root'
+xml_local = '/tmp/environment.xml'
+xml_remote = '/etc/HPCCSystems/environment.xml'
+
+if ProdOrNot == "prod":
+	HostDefinition = "generic-prod-hpcc"
+	ServiceDefinition = "hpcc-prod-service"
+elif ProdOrNot == "non-prod":
+	HostDefinition = "generic-nonprod-hpcc"
+	ServiceDefinition = "hpcc-nonprod-service"
+else:
+	print "Invalid Option"
+	sys.exit(1)
+
+
+class XML():
+	def __init__(self):
+		self.xml = self
+
+	def getXML(self):
+		host = paramiko.Transport((Address, 22))
+		host.connect(username = user, password = xxx)
+		sftp = paramiko.SFTPClient.from_transport(host)
+		sftp.get(xml_remote, xml_local)
+
+class XMLParser():
+	
+	def __init__(self):
+		self.parsing = self
+
+	def IPs(self):
+		ParseXML = ET.parse(xml_local)
+		doc_root = ParseXML.getroot()
+		ip_addresses = []
+		for i in doc_root.findall('.//DafilesrvProcess/Instance'):
+			ip = i.attrib['netAddress']
+			ip_addresses.append(ip)
+		return ip_addresses
+
+	def NumberOfServers(self):
+		ParseXML = ET.parse(xml_local)
+		doc_root = ParseXML.getroot()
+		ip_addresses = []
+		for i in doc_root.findall('.//DafilesrvProcess/Instance'):
+			ip = i.attrib['netAddress']
+			ip_addresses.append(ip)
+		return ip_addresses
+	
+	def dali(self):
+		ParseXML = ET.parse(xml_local)
+		doc_root = ParseXML.getroot()
+		for i in doc_root.findall('.//DaliServerProcess/Instance'):
+			DaliIP = i.attrib['netAddress']
+		return DaliIP
+	
+	def eclccservers(self):
+		ParseXML = ET.parse(xml_local)
+		doc_root = ParseXML.getroot()
+		eclservers = []
+		for i in doc_root.findall('.//EclCCServerProcess/Instance'):
+			ECLIP = i.attrib['netAddress']
+			eclservers.append(ECLIP)
+		return eclservers
+
+	def eclservers(self):
+		ParseXML = ET.parse(xml_local)
+		doc_root = ParseXML.getroot()
+		eclservers = []
+		for i in doc_root.findall('.//EclServerProcess/Instance'):
+			ECLIP = i.attrib['netAddress']
+			eclservers.append(ECLIP)
+		return eclservers
+
+	def eclagent(self):
+		ParseXML = ET.parse(xml_local)
+		doc_root = ParseXML.getroot()
+		agents = []
+		for i in doc_root.findall('.//EclAgentProcess/Instance'):
+			AgentIP = i.attrib['netAddress']
+			agents.append(AgentIP)
+		return agents
+
+	def dfuserver(self):
+		ParseXML = ET.parse(xml_local)
+		doc_root = ParseXML.getroot()
+		dfuserver = []
+		for i in doc_root.findall('.//DfuServerProcess/Instance'):
+			DfuServer = i.attrib['netAddress']
+			dfuserver.append(DfuServer)
+		return dfuserver
+	
+	def ESP(self):
+		ParseXML = ET.parse(xml_local)
+		doc_root = ParseXML.getroot()
+		ESP = []
+		for i in doc_root.findall('.//EspProcess/Instance'):
+			EspServer = i.attrib['netAddress']
+			ESP.append(EspServer)
+		return ESP
+
+
+	def EclScheduler(self):
+		ParseXML = ET.parse(xml_local)
+		doc_root = ParseXML.getroot()
+		eclscheduler = []
+		for i in doc_root.findall('.//EclSchedulerProcess/Instance'):
+			scheduler = i.attrib['netAddress']
+			eclscheduler.append(scheduler)
+		return eclscheduler
+
+
+	def sasha(self):
+		ParseXML = ET.parse(xml_local)
+		doc_root = ParseXML.getroot()
+		for i in doc_root.findall('.//SashaServerProcess/Instance'):
+			Sasha = i.attrib['netAddress']
+		return Sasha
+
+	def Roxie(self):
+		ParseXML = ET.parse(xml_local)
+		doc_root = ParseXML.getroot()
+		Roxies = []
+		for roxie in doc_root.findall('.//RoxieServerProcess'):
+			Roxie = roxie.attrib['computer']
+			Roxies.append(Roxie)
+		ip_addr = {}
+		for node in doc_root.findall('.//Hardware/Computer'):
+			Machine = node.attrib['name']
+			IP = node.attrib['netAddress']
+			ip_addr[Machine] = IP
+		RoxieSlaves = []
+		for key in ip_addr:
+			if key not in Roxies:
+				continue
+			elif key in Roxies:
+				RoxieSlaves.append(ip_addr[key]) 
+		return RoxieSlaves
+
+	def ThorMaster(self):
+		ParseXML = ET.parse(xml_local)
+		doc_root = ParseXML.getroot()
+		Thors = []
+		for i in doc_root.findall('.//ThorMasterProcess'):
+			Thor = i.attrib['computer']
+			Thors.append(Thor)
+		d = {}
+		for i in doc_root.findall('.//Hardware/Computer'):
+			Machine = i.attrib['name']
+			IP = i.attrib['netAddress']
+			d[Machine] = IP
+		masterport = {}
+		machine = []
+		for i in doc_root.findall('.//ThorCluster'):
+			try:
+				Computer = i.attrib['computer']
+				Port = i.attrib['masterport']
+				if Computer in d:
+					machine.append(Port)
+			except KeyError:
+				continue
+			masterport.setdefault(d[Computer], [])
+			masterport[d[Computer]].append(machine)
+			machine = []
+		ThorMasters = []
+		for i in d:
+			if i not in Thors:
+				continue
+			elif i in Thors:
+				ThorMasters.append(d[i])
+		return ThorMasters, masterport
+
+
+	def ThorSlave(self):
+		ParseXML = ET.parse(xml_local)
+		doc_root = ParseXML.getroot()
+		Thors = []
+		for i in doc_root.findall('.//ThorSlaveProcess'):
+			Thor = i.attrib['computer']
+			Thors.append(Thor)
+		d = {}
+		for i in doc_root.findall('.//Hardware/Computer'):
+			Machine = i.attrib['name']
+			IP = i.attrib['netAddress']
+			d[Machine] = IP
+		ThorSlaves = []
+		for i in d:
+			if i not in Thors:
+				continue
+			elif i in Thors:
+				ThorSlaves.append(d[i])
+		return ThorSlaves
+
+	def DropZones(self):
+		ParseXML = ET.parse(xml_local)
+		doc_root = ParseXML.getroot()
+		ComputerName = []
+		for i in doc_root.findall('.//DropZone'):
+			Computer = i.attrib['computer']
+			ComputerName.append(Computer)
+		ip_addr = {}
+		for i in doc_root.findall('.//Hardware/Computer'):
+			Machine = i.attrib['name']
+			IP = i.attrib['netAddress']
+			ip_addr[Machine] = IP
+		Dropzones = []
+		for ip in ip_addr:
+			if ip not in ComputerName:
+				continue
+			elif ip in ComputerName and ip not in Dropzones:
+				Dropzones.append(ip_addr[ip])
+		return Dropzones
+		
+
+	def LDAP(self):
+		ParseXML = ET.parse(xml_local)
+		doc_root = ParseXML.getroot()
+		LDAP = []
+		for i in doc_root.findall('.//LDAPServerProcess/Instance'):
+			LDAPServer = i.attrib['netAddress']
+			LDAP.append(LDAPServer)
+		return LDAP
+
+	def MySQLRepo(self):
+		ParseXML = ET.parse(xml_local)
+		doc_root = ParseXML.getroot()
+		RepoServer = []
+		for i in doc_root.findall('.//MySQLProcess'):
+			SQLServer = i.attrib['computer']
+			RepoServer.append(SQLServer)
+		d = {}
+		for i in doc_root.findall('.//Hardware/Computer'):
+			Machine = i.attrib['name']
+			IP = i.attrib['netAddress']
+			d[Machine] = IP
+		MySQLRepoServers = []
+		for i in d:
+			if i not in RepoServer:
+				continue
+			elif i in RepoServer:
+				MySQLRepoServers.append(d[i])
+		return MySQLRepoServers
+			
+			
+a = XML()
+a.getXML()
+pars = XMLParser()
+print
+print '=== list of IP Addresses ===\n', pars.IPs()
+print
+print 'Number of servers = ', len(pars.NumberOfServers())
+print
+print '=========================== Main Components ======================='
+print
+print 'dali = ', pars.dali()
+print
+print 'sasha = ', pars.sasha()
+print
+print 'eclagent =', pars.eclagent()
+print 'Number of ECLAgents = ', len(pars.eclagent())
+print
+print 'eclccserver = ', pars.eclccservers()
+print 'Number of eclccservers = ', len(pars.eclccservers())
+print
+print 'eclserver = ', pars.eclservers()
+print 'Number of eclservers =', len(pars.eclservers())
+print
+print 'dfuserver = ', pars.dfuserver()
+print 'Number of DFUServers = ', len(pars.dfuserver())
+print
+print 'eclscheduler = ', pars.EclScheduler()
+print 'Number of schedulers = ', len(pars.EclScheduler())
+print
+print 'esp = ', pars.ESP()
+print 'Number of ESP Servers = ', len(pars.ESP())
+print
+print 'Roxie = ', pars.Roxie()
+print 'Number of Roxie Servers = ', len(pars.Roxie())
+print
+print 'ThorMaster = ', pars.ThorMaster()[0]
+print 'Number of ThorMaster Nodes = ', len(pars.ThorMaster()[0])
+if len(pars.ThorMaster()[1]) >  0:
+	print 'Port Layout = ', pars.ThorMaster()[1]
+print
+print 'ThorSlaves = ', pars.ThorSlave()
+print 'Number of Slaves = ', len(pars.ThorSlave())
+print
+print 'DropZones = ', pars.DropZones()
+print 'Number of DropZones = ', len(pars.DropZones())
+print
+print 'LDAP Servers = ', pars.LDAP()
+print 'Number of Slaves = ', len(pars.LDAP())
+print 
+print 'MySQL Repositories = ', pars.MySQLRepo()
+print 'Number of Repositories = ', len(pars.MySQLRepo())
+print  
+print '======================================================================'
+print
+print 
+
+### Creating directory structure 
+
+EnvironmentDirectory = '/etc/HPCCSystems/nagios/%s' % Environment
+
+if os.path.isdir(EnvironmentDirectory) == False:
+	subprocess.call(('mkdir -p /etc/HPCCSystems/nagios/%s') % Environment, shell=True)
+else:
+	print "Environment already exists"
+	sys.exit(1)
+
+if os.path.isdir('/etc/HPCCSystems/nagios/hpcc_objects') == False:
+	subprocess.call('mkdir /etc/HPCCSystems/nagios/hpcc_objects', shell=True)
+else:
+	pass
+if os.path.isdir('/etc/HPCCSystems/nagios/LDAP') == False:
+	subprocess.call('mkdir /etc/HPCCSystems/nagios/LDAP', shell=True)
+else:
+	pass
+if os.path.isdir('/etc/HPCCSystems/nagios/MySQL') == False:
+	subprocess.call('mkdir /etc/HPCCSystems/nagios/MySQL', shell=True) 
+else:
+	pass
+if os.path.isdir('/etc/HPCCSystems/nagios/DropZones') == False:
+	subprocess.call('mkdir /etc/HPCCSystems/nagios/DropZones', shell=True) 
+else:
+	pass
+
+### Generating host configuration files with basic checks
+
+for ip in pars.IPs():
+	if ip not in pars.DropZones():
+		filename = "/etc/HPCCSystems/nagios/%s/%s.cfg" % (Environment, ip)
+		config_file = open(filename,'w')
+		host_conf = """
+
+define host{
+        use                 %s            
+        host_name           %s
+        alias               %s
+        address             %s
+        }
+
+define service {
+	use                  %s
+	host_name            %s
+	service_description  Dafilesrv Status
+	check_command        check_dafilesrv
+}
+
+define service {
+	use                  %s
+	host_name            %s
+	service_description  SSH Status 
+	check_command        check_ssh
+}
+
+define service {
+	use                  %s
+	host_name            %s
+	service_description  Drive Status
+	check_command        check_drives
+}
+
+define service {
+        use                  %s
+        host_name            %s
+        service_description  root partition space
+        check_command        check_RootSpace
+}
+
+
+""" % (HostDefinition, ip, ip, ip, ServiceDefinition, ip, ServiceDefinition, ip, ServiceDefinition, ip, ServiceDefinition, ip)
+		config_file.write(host_conf)
+		config_file.close()
+
+### Appending Dali entry to host configuration file
+
+def InsertDaliEntry():
+	filename = "/etc/HPCCSystems/nagios/%s/%s.cfg" % (Environment, pars.dali())
+	config_file = open(filename, 'a')
+	host_conf = """
+
+define service {
+    use                  %s
+    host_name            %s
+    service_description  Dali Service Status
+    check_command        check_dali!7070!5000
+}
+
+""" % (ServiceDefinition, pars.dali())
+	config_file.write(host_conf)
+	config_file.close()
+
+
+### Appending Sasha entry to host configuration file
+
+def InsertSashaEntry():
+        filename = "/etc/HPCCSystems/nagios/%s/%s.cfg" % (Environment, pars.sasha())
+        config_file = open(filename, 'a')
+        host_conf = """
+
+define service {
+    use                  %s
+    host_name            %s
+    service_description  Sasha Service Status
+    check_command        check_sasha!8877!5000
+}
+
+""" % (ServiceDefinition, pars.sasha())
+        config_file.write(host_conf)
+        config_file.close()
+
+
+### Appending ECLAgent entry to host configuration file
+
+def InsertECLAgentEntry():
+	if len(pars.eclagent()) > 0:
+		for ip in pars.eclagent():
+			filename = "/etc/HPCCSystems/nagios/%s/%s.cfg" % (Environment, ip)
+	        	config_file = open(filename, 'a')
+        		host_conf = """
+
+define service {
+    use                  %s
+    host_name            %s
+    service_description  ECLAgent status
+    check_command        check_eclagent
+}
+
+""" % (ServiceDefinition, ip)
+        		config_file.write(host_conf)
+       			config_file.close()
+
+
+### Appending ECLServer entry to host configuration file
+
+def InsertECLServerEntry():
+	if len(pars.eclservers()) > 0:
+		for ip in pars.eclservers():
+			filename = "/etc/HPCCSystems/nagios/%s/%s.cfg" % (Environment, ip)
+	        	config_file = open(filename, 'a')
+        		host_conf = """
+
+define service {
+    use                  %s
+    host_name            %s
+    service_description  ECLServer Status
+    check_command        check_eclserver
+}
+
+""" % (ServiceDefinition, ip)
+        		config_file.write(host_conf)
+       			config_file.close()
+
+
+### Appending DFUServer entry to host configuration file
+
+def InsertDFUServerEntry():
+	if len(pars.dfuserver()) > 0:
+		for ip in pars.dfuserver():
+			filename = "/etc/HPCCSystems/nagios/%s/%s.cfg" % (Environment, ip)
+	        	config_file = open(filename, 'a')
+        		host_conf = """
+
+define service {
+    use                  %s
+    host_name            %s
+    service_description  DFUServer Status
+    check_command        check_dfuserver
+}
+
+""" % (ServiceDefinition, ip)
+        		config_file.write(host_conf)
+       			config_file.close()
+
+
+### Appending ECLScheduler entry to host configuration file
+
+def InsertECLSchedulerEntry():
+	if len(pars.EclScheduler()) > 0:
+		for ip in pars.EclScheduler():
+			filename = "/etc/HPCCSystems/nagios/%s/%s.cfg" % (Environment, ip)
+	        	config_file = open(filename, 'a')
+        		host_conf = """
+
+define service {
+    use                  %s
+    host_name            %s
+    service_description  ECLScheduler Status
+    check_command        check_eclscheduler
+}
+
+""" % (ServiceDefinition, ip)
+        		config_file.write(host_conf)
+       			config_file.close()
+
+
+### Appending ESP entry to host configuration file
+
+def InsertESPServerEntry():
+	if len(pars.ESP()) > 0:
+		for ip in pars.ESP():
+			filename = "/etc/HPCCSystems/nagios/%s/%s.cfg" % (Environment, ip)
+	        	config_file = open(filename, 'a')
+        		host_conf = """
+
+define service {
+    use                  %s
+    host_name            %s
+    service_description  ESP Status
+    check_command        check_esp!8010
+}
+
+""" % (ServiceDefinition, ip)
+        		config_file.write(host_conf)
+       			config_file.close()
+
+
+### Appending Roxie entry to host configuration file
+
+def InsertRoxieEntry():
+	if len(pars.Roxie()) > 0:
+		for ip in pars.Roxie():
+			filename = "/etc/HPCCSystems/nagios/%s/%s.cfg" % (Environment, ip)
+	        	config_file = open(filename, 'a')
+        		host_conf = """
+
+define service {
+    use                  %s
+    host_name            %s
+    service_description  Roxie Status
+    check_command        check_roxie
+}
+
+""" % (ServiceDefinition, ip)
+        		config_file.write(host_conf)
+       			config_file.close()
+
+
+### Appending ThorMaster entry to host configuration file
+
+def InsertThorMasterEntry():
+	if len(pars.ThorMaster()) > 0:
+		for ip in pars.ThorMaster()[0]:
+			if len(pars.ThorMaster()[1]) > 0:
+				for port in pars.ThorMaster()[1][ip]:
+					filename = "/etc/HPCCSystems/nagios/%s/%s.cfg" % (Environment, ip)
+	        			config_file = open(filename, 'a')
+        				host_conf = """
+
+define service {
+    use                  %s
+    host_name            %s
+    service_description  ThorMaster Status port %s
+    check_command        check_thormaster!%s
+}
+
+""" % (ServiceDefinition, ip, int(port[0]), int(port[0]))
+        				config_file.write(host_conf)
+       					config_file.close()
+			else:
+				filename = "/etc/HPCCSystems/nagios/%s/%s.cfg" % (Environment, ip)
+				config_file = open(filename, 'a')
+        			host_conf = """
+
+define service {
+    use                  %s
+    host_name            %s
+    service_description  ThorMaster Status port 20000
+    check_command        check_thormaster!%s
+}
+
+""" % (ServiceDefinition, ip, 20000)
+        			config_file.write(host_conf)
+				config_file.close()
+				
+
+### Appending ThorSlave entry to host configuration file
+
+def InsertThorSlaveEntry():
+	if len(pars.ThorSlave()) > 0:
+		for ip in pars.ThorSlave():
+			filename = "/etc/HPCCSystems/nagios/%s/%s.cfg" % (Environment, ip)
+	        	config_file = open(filename, 'a')
+        		host_conf = """
+
+define service {
+    use                  %s
+    host_name            %s
+    service_description  ThorSlave Status
+    check_command        check_thorslave
+}
+
+""" % (ServiceDefinition, ip)
+        		config_file.write(host_conf)
+       			config_file.close()
+
+### Appending DropZone entry to host configuration file
+
+def InsertDropZoneEntry():
+	for ip in pars.DropZones():
+		if len(pars.DropZones()) > 0 and ip in pars.IPs():
+			filename = '/etc/HPCCSystems/nagios/DropZones/%s.cfg' % ip
+			if os.path.isfile(filename) == False:
+				config_file = open(filename, 'a')
+				host_conf = """
+
+define host{
+        use                 %s            
+        host_name           %s
+        alias               %s
+        address             %s
+        }
+
+define service {
+        use                  %s
+        host_name            %s
+        service_description  Dafilesrv Status
+        check_command        check_dafilesrv
+}
+
+define service {
+        use                  %s
+        host_name            %s
+        service_description  SSH Status 
+        check_command        check_ssh
+}
+
+define service {
+        use                  %s
+        host_name            %s
+        service_description  Drive Status
+        check_command        check_drives
+}
+
+define service {
+        use                  %s
+        host_name            %s
+        service_description  root partition space
+        check_command        check_RootSpace
+}
+""" % (HostDefinition, ip, ip, ip, ServiceDefinition, ip, ServiceDefinition, ip, ServiceDefinition, ip, ServiceDefinition, ip)
+				config_file.write(host_conf)
+				config_file.close()
+
+
+### Appending LDAP entry to host configuration file
+
+def InsertLDAPEntry():
+	if len(pars.LDAP()) > 0:
+		for ip in pars.LDAP():
+			filename = '/etc/HPCCSystems/nagios/LDAP/%s.cfg' % ip
+			if os.path.isfile(filename) == False:
+	        		config_file = open(filename, 'a')
+        			host_conf = """
+define host{
+        use                 %s            
+        host_name           %s
+        alias               %s
+        address             %s
+        }
+
+define service {
+    use                  %s
+    host_name            %s
+    service_description  LDAP/Active Directory Status
+    check_command        check_ldap
+}
+
+""" % (HostDefinition, ip, ip, ip, ServiceDefinition, ip)
+        			config_file.write(host_conf)
+       				config_file.close()
+
+### Appending MySQL entry to host configuration file
+
+def InsertMySQLEntry():
+	if len(pars.MySQLRepo()) > 0:
+		for ip in pars.MySQLRepo():
+			filename = '/etc/HPCCSystems/nagios/MySQL/%s.cfg' % ip
+			if os.path.isfile(filename) == False:
+	        		config_file = open(filename, 'a')
+        			host_conf = """
+
+define host{
+        use                 %s
+        host_name           %s
+        alias               %s
+        address             %s
+        }
+
+define service {
+    use                  %s
+    host_name            %s
+    service_description  MySQL Repository Status
+    check_command        check_mysql
+}
+
+""" % (HostDefinition, ip, ip, ip, ServiceDefinition, ip)
+	        		config_file.write(host_conf)
+       				config_file.close()
+
+
+### Appending new entries to /etc/nagios4/hpcc/hostgroups_nagios2.cfg
+
+def EditHostGroups():
+	hostgroup_filename = open("/etc/HPCCSystems/nagios//hpcc_objects/hpcc_hostgroups.cfg", 'a')
+	ingest = "%s" % pars.IPs()
+	cleanup = ingest.replace('[', '').replace(']', '').replace('\'', '').replace(' ', '')
+	bulk = """
+define hostgroup {
+        hostgroup_name  %s
+        alias           %s
+        members         %s
+}
+""" % (Environment, Environment, cleanup)
+	hostgroup_filename.write(bulk)
+	hostgroup_filename.close()
+
+def hpccCommands():
+	filename = '/etc/HPCCSystems/nagios/hpcc_objects/hpcc_commands.cfg'
+	if os.path.isfile(filename) == False:
+		config_file = open(filename, 'a')
+		
+		command_conf = """
+
+### Generic Checks ###
+
+define command{
+        command_name check_drives
+        command_line /usr/local/nagios/libexec/custom/Generic/check_drives $HOSTADDRESS$
+        }
+define command{
+        command_name check_RootSpace
+        command_line /usr/local/nagios/libexec/custom/Generic/check_RootSpace $HOSTADDRESS$
+        }
+define command{
+        command_name check_drive_space
+        command_line /usr/local/nagios/libexec/custom/Generic/DriveSpace $HOSTADDRESS$
+        }
+define command{
+        command_name check_ldap
+        command_line /usr/local/nagios/libexec/check_tcp -H $HOSTADDRESS$ -p 389
+        }
+define command{
+        command_name check_mysql
+        command_line /usr/local/nagios/libexec/check_tcp -H $HOSTADDRESS$ -p 3306
+        }
+
+
+
+### HPCC Platform Checks ###
+
+define command{
+        command_name  check_dafilesrv
+        command_line  /usr/lib/nagios/plugins/check_dafilesrv $HOSTADDRESS$
+        }
+define command{
+        command_name  check_dali
+        command_line  /usr/lib/nagios/plugins/check_dali $HOSTADDRESS$ $ARG1$ $ARG2$
+        }
+define command{
+        command_name  check_roxie
+        command_line  /usr/lib/nagios/plugins/check_roxie $HOSTADDRESS$
+        }
+define command{
+        command_name  check_sasha
+        command_line  /usr/lib/nagios/plugins/check_sasha $HOSTADDRESS$ $ARG1$ $ARG2$
+        }
+
+
+### HPCC Custom Checks ###
+
+define command{
+        command_name  check_esp
+        command_line  /usr/local/nagios/libexec/check_tcp -H $HOSTADDRESS$ -p $ARG1$
+        }
+define command{
+        command_name  check_thormaster
+        command_line  /usr/local/nagios/libexec/check_tcp -H $HOSTADDRESS$ -p $ARG1$
+        }
+define command{
+        command_name  check_thorslave
+        command_line  /usr/local/nagios/libexec/custom/Generic/check_thorslave $HOSTADDRESS$ 
+        }
+define command{
+        command_name  check_eclagent
+        command_line  /usr/local/nagios/libexec/custom/Generic/check_eclagent $HOSTADDRESS$ 
+        }
+define command{
+        command_name  check_eclserver
+        command_line  /usr/local/nagios/libexec/custom/Generic/check_eclserver $HOSTADDRESS$ 
+        }
+define command{
+        command_name  check_eclscheduler
+        command_line  /usr/local/nagios/libexec/custom/Generic/check_eclscheduler $HOSTADDRESS$ 
+        }
+define command{
+        command_name  check_dfuserver
+        command_line  /usr/local/nagios/libexec/custom/Generic/check_dfuserver $HOSTADDRESS$ 
+        }
+
+"""
+		config_file.write(command_conf)
+		config_file.close()
+
+
+def hpccTimePeriods():
+	filename = '/etc/HPCCSystems/nagios/hpcc_objects/hpcc_timeperiods.cfg'
+	if os.path.isfile(filename) == False:
+		config_file = open(filename, 'a')
+		definitions_conf = """
+
+# This defines a timeperiod where all times are valid for checks, 
+# notifications, etc.  The classic "24x7" support nightmare. :-)
+define timeperiod{
+        timeperiod_name hpcc-24x7
+        alias           24 Hours A Day, 7 Days A Week
+        sunday          00:00-24:00
+        monday          00:00-24:00
+        tuesday         00:00-24:00
+        wednesday       00:00-24:00
+        thursday        00:00-24:00
+        friday          00:00-24:00
+        saturday        00:00-24:00
+        }
+
+# 'workhours/banker hours' timeperiod definition for non-production systems
+define timeperiod{
+        timeperiod_name hpcc-workhours
+        alias           Normal Work Hours
+        monday          06:00-17:00
+        tuesday         06:00-17:00
+        wednesday       06:00-17:00
+        thursday        06:00-17:00
+        friday          06:00-17:00
+        }
+"""
+                config_file.write(definitions_conf)
+                config_file.close()
+
+def hpccContacts():
+	filename = '/etc/HPCCSystems/nagios/hpcc_objects/hpcc_contacts.cfg'
+	if os.path.isfile(filename) == False:
+		config_file = open(filename, 'a')
+		definitions_conf = """
+define contact{
+        contact_name                    hpcc_support_team             ; Short name of user
+        use                             generic-contact               ; Inherit default values from generic-contact template
+        alias                                                         ; Full name of user
+
+        email                           somedistributionlist@someplace.com ; <<***** CHANGE THIS TO YOUR EMAIL ADDRESS ******
+        }
+
+define contactgroup{
+        contactgroup_name       hpcc-admins
+        alias                   hpcc-administrators
+        members                 hpcc_support_team
+        }
+"""
+		config_file.write(definitions_conf)
+		config_file.close()
+
+def hpccProdDefinitions():
+	filename = '/etc/HPCCSystems/nagios/hpcc_objects/hpcc_prod_definitions.cfg'
+	if os.path.isfile(filename) == False:
+		config_file = open(filename, 'a')
+		definitions_conf = """
+
+# HPCC Host Definition
+define host{
+        name                            generic-prod-hpcc    ; The name of this host template
+        notifications_enabled           1               ; Host notifications are enabled
+        event_handler_enabled           1               ; Host event handler is enabled
+        flap_detection_enabled          1               ; Flap detection is enabled
+        process_perf_data               1               ; Process performance data
+        retain_status_information       1               ; Retain status information across program restarts
+        retain_nonstatus_information    1               ; Retain non-status information across program restarts
+        notification_period             hpcc-24x7            ; Send host notifications at any time
+	notification_interval   	30              ; Resend notifications every 30 minutes
+        notification_options    	d,r             ; Only send notifications for specific host states
+	contact_groups          	hpcc-admins          ; Notifications get sent to the admins by default
+	check_period            	hpcc-24x7            ; By default, switches are monitored round the clock
+	check_interval         		m5               ; Switches are checked every 5 minutes
+        retry_interval          	1               ; Schedule host check retries at 1 minute intervals
+        max_check_attempts      	10              ; Check each switch 10 times (max)
+        check_command           check-host-alive        ; Default command to check if routers are "alive"
+        register                        0               ; DONT REGISTER THIS DEFINITION - ITS NOT A REAL HOST, JUST A TEMPLATE!
+        }
+
+# HPCC Service Definition
+define service{
+        name                            hpcc-prod-service         ; The 'name' of this service template
+        active_checks_enabled           1                       ; Active service checks are enabled
+        passive_checks_enabled          1                       ; Passive service checks are enabled/accepted
+        parallelize_check               1                       ; Active service checks should be parallelized (disabling this can lead to major performance problems)
+        obsess_over_service             1                       ; We should obsess over this service (if necessary)
+        check_freshness                 0                       ; Default is to NOT check service 'freshness'
+        notifications_enabled           1                       ; Service notifications are enabled
+        event_handler_enabled           1                       ; Service event handler is enabled
+        flap_detection_enabled          1                       ; Flap detection is enabled
+        process_perf_data               1                       ; Process performance data
+        retain_status_information       1                       ; Retain status information across program restarts
+        retain_nonstatus_information    1                       ; Retain non-status information across program restarts
+        is_volatile                     0                       ; The service is not volatile
+        check_period                    hpcc-24x7               ; The service can be checked at any time of the day
+        max_check_attempts              3                       ; Re-check the service up to 3 times in order to determine its final (hard) state
+        normal_check_interval           10                      ; Check the service every 10 minutes under normal conditions
+        retry_check_interval            2                       ; Re-check the service every two minutes until a hard state can be determined
+        contact_groups                  hpcc-admins                  ; Notifications get sent out to everyone in the 'admins' group
+        notification_options            w,u,c,r                 ; Send notifications about warning, unknown, critical, and recovery events
+        notification_interval           60                      ; Re-notify about service problems every hour
+        notification_period             hpcc-24x7               ; Notifications can be sent out at any time
+         register                        0                      ; DONT REGISTER THIS DEFINITION - ITS NOT A REAL SERVICE, JUST A TEMPLATE!
+        }
+
+"""
+		config_file.write(definitions_conf)
+		config_file.close()
+
+def hpccNonProdDefinitions():
+	filename = '/etc/HPCCSystems/nagios/hpcc_objects/hpcc_nonprod_definitions.cfg'
+	if os.path.isfile(filename) == False:
+		config_file = open(filename, 'a')
+		definitions_conf = """
+
+# HPCC Host Definition
+define host{
+        name                            generic-nonprod-hpcc    ; The name of this host template
+        notifications_enabled           1                       ; Host notifications are enabled
+        event_handler_enabled           1                       ; Host event handler is enabled
+        flap_detection_enabled          1                       ; Flap detection is enabled
+        process_perf_data               1                       ; Process performance data
+        retain_status_information       1                       ; Retain status information across program restarts
+        retain_nonstatus_information    1                       ; Retain non-status information across program restarts
+        notification_period             hpcc-workhours          ; Send host notifications at any time
+	notification_interval   	30                      ; Resend notifications every 30 minutes
+        notification_options    	d,r                     ; Only send notifications for specific host states
+	contact_groups          	hpcc-admins                  ; Notifications get sent to the admins by default
+	check_period            	hpcc-24x7               ; By default, switches are monitored round the clock
+	check_interval         		m5                      ; Switches are checked every 5 minutes
+        retry_interval          	1                       ; Schedule host check retries at 1 minute intervals
+        max_check_attempts      	10                      ; Check each switch 10 times (max)
+        check_command           check-host-alive                ; Default command to check if routers are "alive"
+        register                        0                       ; DONT REGISTER THIS DEFINITION - ITS NOT A REAL HOST, JUST A TEMPLATE!
+        }
+
+# HPCC Service Definition
+define service{
+        name                            hpcc-nonprod-service         ; The 'name' of this service template
+        active_checks_enabled           1                            ; Active service checks are enabled
+        passive_checks_enabled          1                            ; Passive service checks are enabled/accepted
+        parallelize_check               1                            ; Active service checks should be parallelized (disabling this can lead to major performance problems)
+        obsess_over_service             1                            ; We should obsess over this service (if necessary)
+        check_freshness                 0                            ; Default is to NOT check service 'freshness'
+        notifications_enabled           1                            ; Service notifications are enabled
+        event_handler_enabled           1                            ; Service event handler is enabled
+        flap_detection_enabled          1                            ; Flap detection is enabled
+        process_perf_data               1                            ; Process performance data
+        retain_status_information       1                            ; Retain status information across program restarts
+        retain_nonstatus_information    1                            ; Retain non-status information across program restarts
+        is_volatile                     0                            ; The service is not volatile
+        check_period                    hpcc-24x7                    ; The service can be checked at any time of the day
+        max_check_attempts              3                            ; Re-check the service up to 3 times in order to determine its final (hard) state
+        normal_check_interval           10                           ; Check the service every 10 minutes under normal conditions
+        retry_check_interval            2                            ; Re-check the service every two minutes until a hard state can be determined
+        contact_groups                  hpcc-admins                       ; Notifications get sent out to everyone in the 'admins' group
+        notification_options            w,u,c,r                      ; Send notifications about warning, unknown, critical, and recovery events
+        notification_interval           60                           ; Re-notify about service problems every hour
+        notification_period             hpcc-workhours               ; Notifications can be sent out at any time
+         register                        0                           ; Why not
+        }
+
+"""
+		config_file.write(definitions_conf)
+		config_file.close()
+
+### Creating configuration files
+
+InsertDaliEntry()
+InsertSashaEntry()
+InsertECLAgentEntry()
+InsertECLServerEntry()
+InsertDFUServerEntry()
+InsertECLSchedulerEntry()
+InsertESPServerEntry()
+InsertRoxieEntry()
+InsertThorMasterEntry()
+InsertThorSlaveEntry()
+InsertDropZoneEntry()
+InsertLDAPEntry()
+InsertMySQLEntry()
+EditHostGroups()
+hpccTimePeriods()
+hpccContacts()
+hpccCommands()
+hpccProdDefinitions()
+hpccNonProdDefinitions()
+
+### Changing file ownership
+
+subprocess.call('chown nagios. /etc/HPCCSystems/nagios/ -R', shell=True)
+
+### Restarting Nagios application
+
+subprocess.call('/etc/init.d/nagios restart', shell=True)
