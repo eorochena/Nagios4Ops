@@ -34,3 +34,11 @@ define servicegroup {
 	servicegroup_file.close()
 
 EditServiceGroups()
+
+### Changing file ownership
+
+subprocess.call('chown nagios. /etc/HPCCSystems/nagios/ -R', shell=True)
+
+### Restarting Nagios application
+
+subprocess.call('/etc/init.d/nagios restart', shell=True)
