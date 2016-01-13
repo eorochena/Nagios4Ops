@@ -735,7 +735,7 @@ def hpccCommands():
 
 define command{
         command_name check_raid_svn
-        command_line /usr/local/nagios/libexec/custom/Generic/check_raid_svn $HOSTADDRESS$
+        command_line /usr/local/nagios/libexec/custom/Generic/check_raid $HOSTADDRESS$
         }
 define command{
         command_name check_RootSpace
