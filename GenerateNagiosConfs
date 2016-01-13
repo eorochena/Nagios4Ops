@@ -365,8 +365,8 @@ define service {
 define service {
 	use                  %s
 	host_name            %s
-	service_description  Drive Status
-	check_command        check_drives
+	service_description  Raid Status
+	check_command        check_raid_svn
 }
 
 define service {
@@ -637,8 +637,8 @@ define service {
 define service {
         use                  %s
         host_name            %s
-        service_description  Drive Status
-        check_command        check_drives
+        service_description  Raid Status
+        check_command        check_raid_svn
 }
 
 define service {
@@ -734,8 +734,8 @@ def hpccCommands():
 ### Generic Checks ###
 
 define command{
-        command_name check_drives
-        command_line /usr/local/nagios/libexec/custom/Generic/check_drives $HOSTADDRESS$
+        command_name check_raid_svn
+        command_line /usr/local/nagios/libexec/custom/Generic/check_raid_svn $HOSTADDRESS$
         }
 define command{
         command_name check_RootSpace
