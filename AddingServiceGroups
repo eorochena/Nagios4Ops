@@ -17,7 +17,7 @@ else:
 	pass
 
 for i in buddies:
-	ipNservices.append(i+',Drive Space')
+	ipNservices.append(i+',%s' % Service)
 
 def EditServiceGroups():
 	servicegroup_file = open(filename, 'a')
