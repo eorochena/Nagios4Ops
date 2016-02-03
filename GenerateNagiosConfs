@@ -253,56 +253,38 @@ class XMLParser():
 a = XML()
 a.getXML()
 pars = XMLParser()
-print """
-=== list of IP Addresses ===\n pars.IPs()
-
-Number of servers = len(pars.NumberOfServers())
-
-=========================== Main Components =======================
-
-dali = pars.dali()
- 
-sasha = pars.sasha()
-
-eclagent = pars.eclagent()
-Number of ECLAgents = len(pars.eclagent())
-
-eclccserver = pars.eclccservers()
-Number of eclccservers = len(pars.eclccservers())
-
-eclserver = pars.eclservers()
-Number of eclservers = len(pars.eclservers())
-
-dfuserver = pars.dfuserver()
-Number of DFUServers = len(pars.dfuserver())
-
-eclscheduler = pars.EclScheduler()
-Number of schedulers = len(pars.EclScheduler())
-
-esp = pars.ESP()
-Number of ESP Servers = len(pars.ESP())
-
-Roxie = pars.Roxie()
-Number of Roxie Servers = len(pars.Roxie())
-
-ThorMaster = pars.ThorMaster()[0]
-Number of ThorMaster Nodes = len(pars.ThorMaster()[0])"""
+print "=== list of IP Addresses ===",'\n' pars.IPs(),'\n'
+print 'Number of servers = ', len(pars.NumberOfServers()),'\n'
+print '=========================== Main Components =======================','\n'
+print 'dali = ', pars.dali(),'\n'
+print 'sasha = ', pars.sasha(),'\n'
+print 'eclagent = ', pars.eclagent(),'\n'
+print 'Number of ECLAgents = ', len(pars.eclagent())'\n'
+print 'eclccserver = ', pars.eclccservers(),'\n'
+print 'Number of eclccservers = ', len(pars.eclccservers()),'\n'
+print 'eclserver = ', pars.eclservers(),'\n'
+print 'Number of eclservers = ', len(pars.eclservers()),'\n'
+print 'dfuserver = ', pars.dfuserver(),'\n'
+print 'Number of DFUServers = ', len(pars.dfuserver()),'\n'
+print 'eclscheduler = ', pars.EclScheduler(),'\n'
+print 'Number of schedulers = ', len(pars.EclScheduler()),'\n'
+print 'esp = ', pars.ESP(),'\n'
+print 'Number of ESP Servers = ', len(pars.ESP()),'\n'
+print 'Roxie = ', pars.Roxie(),'\n'
+print 'Number of Roxie Servers = ', len(pars.Roxie()),'\n'
+print 'ThorMaster = ', pars.ThorMaster()[0],'\n'
+print 'Number of ThorMaster Nodes = ', len(pars.ThorMaster()[0]),'\n'
 if len(pars.ThorMaster()[1]) >  0:
-	print """Port Layout = ', pars.ThorMaster()[1]
-
-ThorSlaves = pars.ThorSlave()
-Number of Slaves = len(pars.ThorSlave())
-
-DropZones = pars.DropZones()
-Number of DropZones = len(pars.DropZones())
-
-LDAP Servers = pars.LDAP()
-Number of Slaves = len(pars.LDAP())
-
-MySQL Repositories = pars.MySQLRepo()
-Number of Repositories = len(pars.MySQLRepo())
-
-======================================================================"""
+	print 'Port Layout = ', pars.ThorMaster()[1],'\n'
+print 'ThorSlaves = ', pars.ThorSlave(),'\n'
+print 'Number of Slaves = ', len(pars.ThorSlave()),'\n'
+print 'DropZones = ', pars.DropZones(),'\n'
+print 'Number of DropZones = ', len(pars.DropZones())'\n'
+print 'LDAP Servers = ', pars.LDAP(),'\n'
+print 'Number of Slaves = ', len(pars.LDAP()),'\n'
+print 'MySQL Repositories = ', pars.MySQLRepo(),'\n'
+print 'Number of Repositories = ', len(pars.MySQLRepo()),'\n'
+print '======================================================================','\n'
 
 ### Creating directory structure 
 
