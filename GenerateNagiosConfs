@@ -253,58 +253,56 @@ class XMLParser():
 a = XML()
 a.getXML()
 pars = XMLParser()
-print
-print '=== list of IP Addresses ===\n', pars.IPs()
-print
-print 'Number of servers = ', len(pars.NumberOfServers())
-print
-print '=========================== Main Components ======================='
-print
-print 'dali = ', pars.dali()
-print
-print 'sasha = ', pars.sasha()
-print
-print 'eclagent =', pars.eclagent()
-print 'Number of ECLAgents = ', len(pars.eclagent())
-print
-print 'eclccserver = ', pars.eclccservers()
-print 'Number of eclccservers = ', len(pars.eclccservers())
-print
-print 'eclserver = ', pars.eclservers()
-print 'Number of eclservers =', len(pars.eclservers())
-print
-print 'dfuserver = ', pars.dfuserver()
-print 'Number of DFUServers = ', len(pars.dfuserver())
-print
-print 'eclscheduler = ', pars.EclScheduler()
-print 'Number of schedulers = ', len(pars.EclScheduler())
-print
-print 'esp = ', pars.ESP()
-print 'Number of ESP Servers = ', len(pars.ESP())
-print
-print 'Roxie = ', pars.Roxie()
-print 'Number of Roxie Servers = ', len(pars.Roxie())
-print
-print 'ThorMaster = ', pars.ThorMaster()[0]
-print 'Number of ThorMaster Nodes = ', len(pars.ThorMaster()[0])
+print """
+=== list of IP Addresses ===\n pars.IPs()
+
+Number of servers = len(pars.NumberOfServers())
+
+=========================== Main Components =======================
+
+dali = pars.dali()
+ 
+sasha = pars.sasha()
+
+eclagent = pars.eclagent()
+Number of ECLAgents = len(pars.eclagent())
+
+eclccserver = pars.eclccservers()
+Number of eclccservers = len(pars.eclccservers())
+
+eclserver = pars.eclservers()
+Number of eclservers = len(pars.eclservers())
+
+dfuserver = pars.dfuserver()
+Number of DFUServers = len(pars.dfuserver())
+
+eclscheduler = pars.EclScheduler()
+Number of schedulers = len(pars.EclScheduler())
+
+esp = pars.ESP()
+Number of ESP Servers = len(pars.ESP())
+
+Roxie = pars.Roxie()
+Number of Roxie Servers = len(pars.Roxie())
+
+ThorMaster = pars.ThorMaster()[0]
+Number of ThorMaster Nodes = len(pars.ThorMaster()[0])"""
 if len(pars.ThorMaster()[1]) >  0:
-	print 'Port Layout = ', pars.ThorMaster()[1]
-print
-print 'ThorSlaves = ', pars.ThorSlave()
-print 'Number of Slaves = ', len(pars.ThorSlave())
-print
-print 'DropZones = ', pars.DropZones()
-print 'Number of DropZones = ', len(pars.DropZones())
-print
-print 'LDAP Servers = ', pars.LDAP()
-print 'Number of Slaves = ', len(pars.LDAP())
-print 
-print 'MySQL Repositories = ', pars.MySQLRepo()
-print 'Number of Repositories = ', len(pars.MySQLRepo())
-print  
-print '======================================================================'
-print
-print 
+	print """Port Layout = ', pars.ThorMaster()[1]
+
+ThorSlaves = pars.ThorSlave()
+Number of Slaves = len(pars.ThorSlave())
+
+DropZones = pars.DropZones()
+Number of DropZones = len(pars.DropZones())
+
+LDAP Servers = pars.LDAP()
+Number of Slaves = len(pars.LDAP())
+
+MySQL Repositories = pars.MySQLRepo()
+Number of Repositories = len(pars.MySQLRepo())
+
+======================================================================"""
 
 ### Creating directory structure 
 
@@ -540,7 +538,14 @@ define service {
     check_command        check_roxie
 }
 
-""" % (ServiceDefinition, ip)
+define service {
+         use                  %s
+         host_name            %s
+         service_description  Memory Status
+         check_command        check_memory
+}
+
+""" % (ServiceDefinition, ip, ServiceDefinition, ip)
         		config_file.write(host_conf)
        			config_file.close()
 
@@ -599,7 +604,14 @@ define service {
     check_command        check_thorslave
 }
 
-""" % (ServiceDefinition, ip)
+define service {
+         use                  %s
+         host_name            %s
+         service_description  Memory Status
+         check_command        check_memory
+}
+
+""" % (ServiceDefinition, ip, ServiceDefinition, ip)
         		config_file.write(host_conf)
        			config_file.close()
 
