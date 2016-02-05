@@ -527,6 +527,13 @@ define service {
          check_command        check_memory
 }
 
+define service {
+	use                  %s
+	host_name            %s
+	service_description  Revision Status
+	check_command        check_revision
+}
+
 """ % (ServiceDefinition, ip, ServiceDefinition, ip)
         		config_file.write(host_conf)
        			config_file.close()
