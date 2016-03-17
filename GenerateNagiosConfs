@@ -356,8 +356,15 @@ define service {
         check_command        check_RootSpace
 }
 
+define service {
+        use                  %s
+        host_name            %s
+        service_description  Drive Space
+        check_command        check_drive_space
+}
 
-""" % (HostDefinition, ip, ip, ip, ServiceDefinition, ip, ServiceDefinition, ip, ServiceDefinition, ip, ServiceDefinition, ip)
+
+""" % (HostDefinition, ip, ip, ip, ServiceDefinition, ip, ServiceDefinition, ip, ServiceDefinition, ip, ServiceDefinition, ip, ServiceDefinition, ip)
 		config_file.write(host_conf)
 		config_file.close()
 
