@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import lxml.etree as ET
-import subprocess, paramiko, getpass, sys, time, os, Queue, threading
+import subprocess, paramiko, getpass, sys, time, os, Queue, threading, platform
 
 Environment = raw_input('Enter Environment Name > ')
 Address = raw_input('Enter IP > ')
@@ -768,7 +768,30 @@ define command{
         command_name check_mysql
         command_line /usr/local/nagios/libexec/check_tcp -H $HOSTADDRESS$ -p 3306
         }
-
+define command{
+        command_name check_raid
+        command_line /usr/local/nagios/libexec/custom/Generic/check_raid_2 $HOSTADDRESS$
+        }
+define command{
+        command_name check_drive
+        command_line /usr/local/nagios/libexec/custom/Generic/check_drive $HOSTADDRESS$
+        }
+define command{
+        command_name check_out_of_memory
+        command_line /usr/local/nagios/libexec/custom/Generic/check_out_of_memory $HOSTADDRESS$
+        }
+define command{
+        command_name check_bonding
+        command_line /usr/local/nagios/libexec/custom/Generic/check_bonding $HOSTADDRESS$
+        }
+define command{
+        command_name check_revision
+        command_line /usr/local/nagios/libexec/custom/Generic/check_revision $HOSTADDRESS$
+        }
+define command{
+        command_name check_wsecl
+        command_line /usr/local/nagios/libexec/check_tcp -H $HOSTADDRESS$ -p 8002
+        }
 
 
 ### HPCC Platform Checks ###
@@ -1025,4 +1048,9 @@ subprocess.call('chown nagios. /etc/HPCCSystems/nagios/ -R', shell=True)
 
 ### Restarting Nagios application
 
-subprocess.call('/etc/init.d/nagios restart', shell=True)
+OS = platform.dist()[0]+platform.dist()[1][0]
+
+if OS == "centos7":
+        subprocess.call('systemctl restart nagios.service', shell=True)
+elif OS == "centos6":
+        subprocess.call('/etc/init.d/nagios restart', shell=True)
