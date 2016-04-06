@@ -346,7 +346,7 @@ define service {
 	use                  %s
 	host_name            %s
 	service_description  Raid Status
-	check_command        check_raid_svn
+	check_command        check_raid
 }
 
 define service {
@@ -653,7 +653,7 @@ define service {
         use                  %s
         host_name            %s
         service_description  Raid Status
-        check_command        check_raid_svn
+        check_command        check_raid
 }
 
 define service {
