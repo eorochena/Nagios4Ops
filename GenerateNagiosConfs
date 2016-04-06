@@ -370,8 +370,14 @@ define service {
         check_command        check_out_of_memory
 }
 
+define service {
+        use                  %s
+        host_name            %s
+        service_description  Drive Errors
+        check_command        check_drive
+}
 
-""" % (HostDefinition, ip, ip, ip, ServiceDefinition, ip, ServiceDefinition, ip, ServiceDefinition, ip, ServiceDefinition, ip, ServiceDefinition, ip, ServiceDefinition, ip)
+""" % (HostDefinition, ip, ip, ip, ServiceDefinition, ip, ServiceDefinition, ip, ServiceDefinition, ip, ServiceDefinition, ip, ServiceDefinition, ip, ServiceDefinition, ip, ServiceDefinition, ip)
 		config_file.write(host_conf)
 		config_file.close()
 
